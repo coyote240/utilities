@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+#   Scrum!
+#
+#   Provide a command to keep track of daily status reports, intended
+#   for use with irssi_script scrum.pl @
+#   https://github.com/coyote240/irssi_scripts/blob/master/scrum.pl
+#
+#   scrum stores daily status, one file per day, in the directory named
+#   in the SCRUM_DIR environment variable.  Status files are named for the
+#   day they are to be reported, in the format YYYY-MM-DD.txt.
+#
+#   When scrum is run, it will look for an existing status file for today,
+#   or if one is not found will look up to 14 days into the past for a previous
+#   file.  If a file is found for today, scrum will open that file in EDITOR.
+#   If a file for a previous day is found, it will copy the contents of that
+#   status file into the file for today and open that file in EDITOR.
+
+if [ -z "$SCRUM_DIR" ]
+then
+    echo 'SCRUM_DIR environment variable must be set'
+    exit
+fi
+
+if [ -z "$EDITOR" ]
+then
+    echo 'EDITOR environment variable must be set'
+    exit
+fi
+
+function carry_over_history {
+    local DELTA=1
+    while [ $DELTA -lt 14 ]; do
+        local LAST_SCRUM=$(date -v-${DELTA}d +"%Y-%m-%d")
+        local LAST_SCRUM_FILE="${SCRUM_DIR%%/}/$LAST_SCRUM.txt"
+
+        if [ -e $LAST_SCRUM_FILE ]
+        then
+            echo "File $LAST_SCRUM_FILE found"
+            cp $LAST_SCRUM_FILE $TODAYS_FILE
+            break
+        fi
+
+        let DELTA=DELTA+1
+    done
+}
+
+TODAY=$(date +"%Y-%m-%d")
+TODAYS_FILE="${SCRUM_DIR%%/}/$TODAY.txt"
+
+if [ -e $TODAYS_FILE ]
+then
+    echo "Scrum file found for today, ${TODAY}"
+else
+    echo "Creating new file for today at ${$TODAYS_FILE}"
+    carry_over_history
+fi
+
+$EDITOR $TODAYS_FILE
+exit
+
