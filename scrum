@@ -36,7 +36,7 @@ function carry_over_history {
 
         if [ -e $LAST_SCRUM_FILE ]
         then
-            echo "File $LAST_SCRUM_FILE found"
+            echo "File $LAST_SCRUM_FILE found, copying over contents..."
             cp $LAST_SCRUM_FILE $TODAYS_FILE
             break
         fi
@@ -52,7 +52,7 @@ if [ -e $TODAYS_FILE ]
 then
     echo "Scrum file found for today, ${TODAY}"
 else
-    echo "Creating new file for today at ${$TODAYS_FILE}"
+    echo "Creating new file for today at ${TODAYS_FILE}"
     carry_over_history
 fi
 
