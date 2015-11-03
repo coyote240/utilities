@@ -15,6 +15,10 @@
 #   file.  If a file is found for today, scrum will open that file in EDITOR.
 #   If a file for a previous day is found, it will copy the contents of that
 #   status file into the file for today and open that file in EDITOR.
+#
+#   Options:
+#
+#   -p | --print    Print the contents of the current scrum file if present.
 
 if [ -z "$SCRUM_DIR" ]
 then
@@ -28,8 +32,15 @@ then
     exit
 fi
 
+function todays_file {
+    local TODAY=$(date +"%Y-%m-%d")
+    echo "${SCRUM_DIR%%/}/$TODAY.txt"
+}
+
 function carry_over_history {
     local DELTA=1
+    local TODAYS_FILE=$1
+
     while [ $DELTA -lt 14 ]; do
         local LAST_SCRUM=$(date -v-${DELTA}d +"%Y-%m-%d")
         local LAST_SCRUM_FILE="${SCRUM_DIR%%/}/$LAST_SCRUM.txt"
@@ -45,17 +56,51 @@ function carry_over_history {
     done
 }
 
-TODAY=$(date +"%Y-%m-%d")
-TODAYS_FILE="${SCRUM_DIR%%/}/$TODAY.txt"
+function edit_status {
+    local TODAYS_FILE=$(todays_file)
 
-if [ -e $TODAYS_FILE ]
-then
-    echo "Scrum file found for today, ${TODAY}"
-else
-    echo "Creating new file for today at ${TODAYS_FILE}"
-    carry_over_history
-fi
+    if [ -e $TODAYS_FILE ]
+    then
+        echo "Scrum file found for today, ${TODAY}"
+    else
+        echo "Creating new file for today at ${TODAYS_FILE}"
+        carry_over_history $TODAYS_FILE
+    fi
 
-$EDITOR $TODAYS_FILE
+    $EDITOR $TODAYS_FILE
+}
+
+function print_current_status {
+    local TODAYS_FILE=$(todays_file)
+
+    if [ ! -e $TODAYS_FILE ]
+    then
+        echo "No scrum file for today"
+        exit
+    fi
+
+    IFS=$'\n'
+    while read -r line
+    do
+        echo '#info' $line
+    done < "$TODAYS_FILE"
+
+    if [ ! -z "$line" ]
+    then
+        echo -n "$line"
+    fi
+
+    echo 'EOS'
+}
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+        -p|--print)
+            print_current_status
+            exit;;
+    esac
+done
+
+edit_status
 exit
-
